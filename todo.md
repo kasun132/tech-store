@@ -42,3 +42,14 @@
 - [x] Give cart, login, signup, and language utility buttons clear placeholder feedback or real behavior.
 - [x] Make sidebar shop-by-need filters functional for fast charging, wireless audio, and everyday protection.
 - [x] Save a fresh checkpoint after the retail remix follow-ups are complete.
+
+- [ ] Diagnose and fix published Manus domain 404 error for the Sakith Tech Store storefront.
+- [x] Verify the public domain loads the homepage and key storefront paths after the fix.
+
+- [x] Resolve the user-reported 404 on the published Manus domain and confirm the correct live URL; exact published URL currently loads the storefront.
+
+- [x] Add SEO title, description, canonical metadata, and social preview tags for Sakith Tech Store.
+- [x] Add robots.txt and sitemap support for the published Manus domain.
+- [x] Verify SEO assets and document free Google Search Console submission steps.
+
+- [ ] After the user clicks Publish for the SEO checkpoint, verify live robots.txt, sitemap.xml, and page metadata on the public domain.

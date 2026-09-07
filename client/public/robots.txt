@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sakithtech-dmref9mn.manus.space/sitemap.xml
