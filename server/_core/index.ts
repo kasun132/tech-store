@@ -36,6 +36,12 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(["User-agent: *", "Allow: /", "", "Sitemap: https://sakithtech-dmref9mn.manus.space/sitemap.xml", ""].join("\n"));
+  });
+  app.get("/sitemap.xml", (_req, res) => {
+    res.type("application/xml").send(["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">", "  <url><loc>https://sakithtech-dmref9mn.manus.space/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>", "</urlset>"].join("\n"));
+  });
   // tRPC API
   app.use(
     "/api/trpc",

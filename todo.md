@@ -43,7 +43,7 @@
 - [x] Make sidebar shop-by-need filters functional for fast charging, wireless audio, and everyday protection.
 - [x] Save a fresh checkpoint after the retail remix follow-ups are complete.
 
-- [ ] Diagnose and fix published Manus domain 404 error for the Sakith Tech Store storefront.
+- [x] Diagnose and fix published Manus domain 404 error for the Sakith Tech Store storefront; homepage confirmed live, with SEO asset routes hardened separately.
 - [x] Verify the public domain loads the homepage and key storefront paths after the fix.
 
 - [x] Resolve the user-reported 404 on the published Manus domain and confirm the correct live URL; exact published URL currently loads the storefront.
@@ -53,3 +53,10 @@
 - [x] Verify SEO assets and document free Google Search Console submission steps.
 
 - [ ] After the user clicks Publish for the SEO checkpoint, verify live robots.txt, sitemap.xml, and page metadata on the public domain.
+
+- [ ] Reproduce and document the exact published homepage response from a fresh request after the latest checkpoint.
+- [ ] Confirm whether the user-reported homepage 404 was transient deployment/domain propagation or a routing problem.
+
+- [x] Reproduce and document the exact published homepage response from a fresh request after the latest checkpoint: homepage returns HTTP 200.
+- [x] Confirm the user-reported homepage 404 was transient deployment/domain propagation rather than a reproducible homepage routing problem.
+- [ ] Publish the latest SEO/server-route checkpoint, then recheck that live robots.txt and sitemap.xml return their intended content.
