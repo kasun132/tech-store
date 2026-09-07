@@ -128,7 +128,7 @@ export default function Home() {
 
     <main>
       <section className="hero-section" id="signal">
-        <div className="hero-copy"><div className="eyebrow"><span>ERR_001</span> / DEVICE ACCESSORY DEPOT</div><h1>POWER UP<br /><em>YOUR SIGNAL.</em></h1><p>Chargers, cases, cables and audio hardware for the next version of you. Browse the grid. Find your upgrade.</p><div className="hero-buttons"><a href="#catalog" className="primary-button">ENTER CATALOG <ChevronRight size={17} /></a><button className="outline-button" onClick={() => setChatOpen(true)}><Bot size={17} /> ASK THE SYSTEM</button></div></div>
+        <div className="hero-copy"><div className="eyebrow"><span>SAKITH_001</span> / YOUR TECH ACCESSORY STORE</div><h1>TECH MADE<br /><em>PERSONAL.</em></h1><p>Quality chargers, cases, cables and audio essentials for your everyday setup. Find the right accessory quickly and order directly on WhatsApp.</p><div className="hero-buttons"><a href="#catalog" className="primary-button">SHOP THE COLLECTION <ChevronRight size={17} /></a><button className="outline-button" onClick={() => setChatOpen(true)}><Bot size={17} /> ASK OUR ASSISTANT</button></div></div>
         <div className="hero-visual"><div className="orbital-ring ring-a" /><div className="orbital-ring ring-b" /><div className="core-device"><div className="core-label">S_T / 2026</div><div className="core-bars"><span /><span /><span /><span /><span /></div><div className="core-symbol">✦</div></div><div className="floating-code code-a">0x7A // PWR</div><div className="floating-code code-b">SYNC: 100%</div></div>
       </section>
 

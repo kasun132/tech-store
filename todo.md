@@ -25,3 +25,8 @@
 - [x] Fix reported bug: owner-uploaded product images do not reliably appear after saving.
 - [x] Verify end-to-end image upload, product save, and updated-card rendering after reload through the hardened upload/save path and responsive preview.
 - [x] Add focused coverage for the image upload/save state machine and returned storage URL persistence.
+
+- [x] Replace the dark system-failure theme with a polished white, customer-friendly premium storefront design.
+- [x] Preserve the Sakith Tech Store blue identity while improving readability, product browsing, and conversion-focused hierarchy.
+- [x] Verify the redesigned desktop and mobile storefront.
+- [x] Prepare clear GitHub export and hosting guidance, distinguishing full-stack hosting from GitHub Pages.
