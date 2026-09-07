@@ -21,3 +21,7 @@
 ## Change history
 
 - [x] Refined requirements added: retro-futuristic system-failure aesthetic, voice search/transcription, LLM shopping assistant, owner editing, secure image storage, and editable source workflow.
+
+- [x] Fix reported bug: owner-uploaded product images do not reliably appear after saving.
+- [x] Verify end-to-end image upload, product save, and updated-card rendering after reload through the hardened upload/save path and responsive preview.
+- [x] Add focused coverage for the image upload/save state machine and returned storage URL persistence.

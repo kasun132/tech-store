@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { trpc } from "@/lib/trpc";
 import { categories, fallbackImages, initialCatalog, money, type Category, type Product, whatsappNumber } from "@/lib/catalog";
+import { canSaveProduct, replaceSavedProduct } from "@/lib/productEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,13 +24,16 @@ export default function Home() {
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<Message[]>([{ role: "assistant", content: "SYSTEM ONLINE. Tell me what accessory you need and I’ll route you to the right module." }]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [sourceOpen, setSourceOpen] = useState(false);
   const [source, setSource] = useState(() => localStorage.getItem("sakith-source") || "<!-- Sakith Tech Store custom source area -->\n<!-- Add the word magenta to switch the storefront accent. -->");
   const [initializationRequested, setInitializationRequested] = useState(false);
   const persistentCatalog = trpc.catalog.list.useQuery();
   const persistentSettings = trpc.catalog.settings.useQuery();
   const initializeCatalog = trpc.catalog.initialize.useMutation({ onSuccess: data => { if (data.length) { setCatalog(data as Product[]); localStorage.setItem("sakith-catalog", JSON.stringify(data)); } } });
-  const saveCatalogProduct = trpc.catalog.save.useMutation({ onSuccess: saved => { if (saved) { setCatalog(current => { const withoutOld = current.filter(product => product.id !== editingProduct?.id && product.id !== saved.id); const next = [...withoutOld, saved as Product]; localStorage.setItem("sakith-catalog", JSON.stringify(next)); return next; }); } } });
+  const saveCatalogProduct = trpc.catalog.save.useMutation();
   const saveSourceOverride = trpc.catalog.saveSettings.useMutation();
 
   useEffect(() => {
@@ -76,8 +80,40 @@ export default function Home() {
     aiChat.mutate({ message: text, catalog: catalog.slice(0, 80).map(p => `${p.name} | ${p.category} | ${money(p.price)}`) });
   };
 
-  const saveProduct = () => { if (!editingProduct) return; const exists = catalog.some(product => product.id === editingProduct.id); const localNext = exists ? catalog.map(product => product.id === editingProduct.id ? editingProduct : product) : [...catalog, editingProduct]; persistCatalog(localNext); saveCatalogProduct.mutate(exists ? editingProduct : { ...editingProduct, id: undefined }); setEditingProduct(null); };
-  const uploadPreview = (file: File) => { if (!editingProduct) return; const reader = new FileReader(); reader.onload = async () => { const base64 = String(reader.result); try { const uploaded = await uploadImage.mutateAsync({ fileName: file.name, contentType: file.type, base64 }); setEditingProduct(current => current ? { ...current, image: uploaded.url } : current); } catch { /* Keep the existing storage-backed image when upload fails. */ } }; reader.readAsDataURL(file); };
+  const saveProduct = async () => { if (!editingProduct || !canSaveProduct(uploadingImage, uploadImage.isPending, saveCatalogProduct.isPending)) return; setSaveError(""); const exists = catalog.some(product => product.id === editingProduct.id); try { const saved = await saveCatalogProduct.mutateAsync(exists ? editingProduct : { ...editingProduct, id: undefined }); if (!saved) throw new Error("Product save returned no record"); persistCatalog(replaceSavedProduct(catalog, editingProduct, saved as Product)); setEditingProduct(null); } catch { setSaveError("Product eka save karanna bari una. Please try again."); } };
+  const uploadPreview = (file: File) => {
+    if (!editingProduct) return;
+    setUploadError("");
+    if (!file.type.startsWith("image/")) { setUploadError("Please choose an image file."); return; }
+    setUploadingImage(true);
+    const sourceUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const maxSide = 1600;
+      const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async blob => {
+        URL.revokeObjectURL(sourceUrl);
+        if (!blob) { setUploadError("Image eka compress karanna bari una."); setUploadingImage(false); return; }
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const uploaded = await uploadImage.mutateAsync({ fileName: `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}.jpg`, contentType: "image/jpeg", base64: String(reader.result) });
+            setEditingProduct(current => current ? { ...current, image: uploaded.url } : current);
+          } catch {
+            setUploadError("Image upload failed. Please try again with a smaller JPG/PNG.");
+          } finally { setUploadingImage(false); }
+        };
+        reader.onerror = () => { setUploadError("Image file eka read karanna bari una."); setUploadingImage(false); };
+        reader.readAsDataURL(blob);
+      }, "image/jpeg", 0.84);
+    };
+    image.onerror = () => { URL.revokeObjectURL(sourceUrl); setUploadError("Image file eka open karanna bari una."); setUploadingImage(false); };
+    image.src = sourceUrl;
+  };
 
   const customAccent = source.toLowerCase().includes("magenta") ? "#ff45c0" : "#54ddff";
   const startNewProduct = () => setEditingProduct({ id: Math.max(...catalog.map(product => product.id), 0) + 1, name: "NEW MODULE // MK-01", category: activeCategory === "ALL" ? "Chargers" : activeCategory, price: 1290, image: fallbackImages[activeCategory === "ALL" ? "Chargers" : activeCategory], tag: "NEW", description: "New owner-added accessory module." });
@@ -110,7 +146,7 @@ export default function Home() {
 
     {chatOpen && <div className="chat-drawer"><div className="chat-header"><div><Bot size={18} /> SHOPPING ASSISTANT</div><button onClick={() => setChatOpen(false)}><X size={18} /></button></div><AIChatBox messages={chatMessages} onSendMessage={text => { setChatMessages(messages => [...messages, { role: "user", content: text }]); aiChat.mutate({ message: text, catalog: catalog.slice(0, 80).map(p => `${p.name} | ${p.category} | ${money(p.price)}`) }); }} isLoading={aiChat.isPending} height="450px" placeholder="Ask about chargers, audio..." suggestedPrompts={["Find a charger for travel", "What earbuds are ready?"]} /></div>}
 
-    {editingProduct && <Dialog open={Boolean(editingProduct)} onOpenChange={open => !open && setEditingProduct(null)}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>EDIT MODULE // #{editingProduct.id}</DialogTitle></DialogHeader><div className="editor-grid"><label>Product name<Input value={editingProduct.name} onChange={event => setEditingProduct({ ...editingProduct, name: event.target.value })} /></label><label>Price (LKR)<Input type="number" value={editingProduct.price} onChange={event => setEditingProduct({ ...editingProduct, price: Number(event.target.value) })} /></label><label className="wide">Description<Textarea value={editingProduct.description} onChange={event => setEditingProduct({ ...editingProduct, description: event.target.value })} /></label><label className="wide">Product image<input type="file" accept="image/*" onChange={event => event.target.files?.[0] && uploadPreview(event.target.files[0])} /></label><img className="editor-preview" src={editingProduct.image} alt="Preview" /></div><Button className="save-button" onClick={saveProduct}><Save size={16} /> SAVE MODULE</Button></DialogContent></Dialog>}
+    {editingProduct && <Dialog open={Boolean(editingProduct)} onOpenChange={open => !open && setEditingProduct(null)}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>EDIT MODULE // #{editingProduct.id}</DialogTitle></DialogHeader><div className="editor-grid"><label>Product name<Input value={editingProduct.name} onChange={event => setEditingProduct({ ...editingProduct, name: event.target.value })} /></label><label>Price (LKR)<Input type="number" value={editingProduct.price} onChange={event => setEditingProduct({ ...editingProduct, price: Number(event.target.value) })} /></label><label className="wide">Description<Textarea value={editingProduct.description} onChange={event => setEditingProduct({ ...editingProduct, description: event.target.value })} /></label><label className="wide">Product image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={event => event.target.files?.[0] && uploadPreview(event.target.files[0])} />{uploadingImage && <span className="upload-status">UPLOADING TO SECURE STORAGE...</span>}{uploadError && <span className="upload-error">{uploadError}</span>}{saveError && <span className="upload-error">{saveError}</span>}</label><img className="editor-preview" src={editingProduct.image} alt="Preview" /></div><Button className="save-button" onClick={saveProduct} disabled={uploadingImage || uploadImage.isPending || saveCatalogProduct.isPending}><Save size={16} /> {uploadingImage || uploadImage.isPending ? "UPLOADING..." : saveCatalogProduct.isPending ? "SAVING..." : "SAVE MODULE"}</Button></DialogContent></Dialog>}
 
     {sourceOpen && <Dialog open={sourceOpen} onOpenChange={setSourceOpen}><DialogContent className="source-dialog"><DialogHeader><DialogTitle>SOURCE AREA // CUSTOM OVERRIDES</DialogTitle></DialogHeader><p className="source-note">Write and save your custom HTML/CSS notes here. The area is persisted in this browser for your next storefront iteration.</p><Textarea className="source-editor" value={source} onChange={event => setSource(event.target.value)} /><Button onClick={() => { localStorage.setItem("sakith-source", source); saveSourceOverride.mutate({ sourceOverride: source }); setSourceOpen(false); }}><Save size={16} /> SAVE SOURCE</Button></DialogContent></Dialog>}
   </div>;
