@@ -5,6 +5,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { getStorefrontSettings, listProducts, saveStorefrontSettings, upsertProduct } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -15,6 +16,18 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+  catalog: router({
+    list: publicProcedure.query(() => listProducts()),
+    initialize: publicProcedure.input(z.object({ products: z.array(z.object({ name: z.string(), category: z.string(), price: z.number().int(), image: z.string(), tag: z.string(), description: z.string() })).max(250) })).mutation(async ({ input }) => {
+      const existing = await listProducts();
+      if (existing.length > 0) return existing;
+      for (const product of input.products) await upsertProduct(product);
+      return listProducts();
+    }),
+    save: publicProcedure.input(z.object({ id: z.number().int().optional(), name: z.string().min(1), category: z.string().min(1), price: z.number().int().nonnegative(), image: z.string().min(1), tag: z.string().min(1), description: z.string().min(1) })).mutation(({ input }) => upsertProduct(input)),
+    settings: publicProcedure.query(() => getStorefrontSettings()),
+    saveSettings: publicProcedure.input(z.object({ sourceOverride: z.string().max(20000) })).mutation(({ input }) => saveStorefrontSettings(input.sourceOverride)),
   }),
   media: router({
     uploadImage: publicProcedure.input(z.object({ fileName: z.string().min(1).max(160), contentType: z.string().regex(/^image\//), base64: z.string().max(8_000_000) })).mutation(async ({ input }) => {

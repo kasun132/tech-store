@@ -13,10 +13,10 @@
 - [x] Add owner editing workflow for adding, updating, creating, saving, and customizing products.
 - [x] Add secure product-image upload and reliable storefront serving through project storage without a base64 fallback.
 - [x] Add editable source customization with a saved accent override that affects the storefront shell.
-- [ ] Add backend schema, procedures, and validation for fully persistent catalog management beyond browser-local catalog saves.
+- [x] Add backend schema, procedures, and validation for fully persistent catalog management beyond browser-local catalog saves.
 - [x] Add and execute Vitest coverage for the 250-item catalog distribution and WhatsApp number contract.
 - [x] Verify desktop and mobile responsive rendering and inspect runtime/build logs.
-- [ ] Create the final checkpoint after all verification fixes.
+- [x] Create the final checkpoint after all verification fixes.
 
 ## Change history
 

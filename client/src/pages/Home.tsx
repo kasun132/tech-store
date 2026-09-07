@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AIChatBox, type Message } from "@/components/AIChatBox";
 import { trpc } from "@/lib/trpc";
 import { categories, fallbackImages, initialCatalog, money, type Category, type Product, whatsappNumber } from "@/lib/catalog";
@@ -25,6 +25,26 @@ export default function Home() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [source, setSource] = useState(() => localStorage.getItem("sakith-source") || "<!-- Sakith Tech Store custom source area -->\n<!-- Add the word magenta to switch the storefront accent. -->");
+  const [initializationRequested, setInitializationRequested] = useState(false);
+  const persistentCatalog = trpc.catalog.list.useQuery();
+  const persistentSettings = trpc.catalog.settings.useQuery();
+  const initializeCatalog = trpc.catalog.initialize.useMutation({ onSuccess: data => { if (data.length) { setCatalog(data as Product[]); localStorage.setItem("sakith-catalog", JSON.stringify(data)); } } });
+  const saveCatalogProduct = trpc.catalog.save.useMutation({ onSuccess: saved => { if (saved) { setCatalog(current => { const withoutOld = current.filter(product => product.id !== editingProduct?.id && product.id !== saved.id); const next = [...withoutOld, saved as Product]; localStorage.setItem("sakith-catalog", JSON.stringify(next)); return next; }); } } });
+  const saveSourceOverride = trpc.catalog.saveSettings.useMutation();
+
+  useEffect(() => {
+    if (persistentCatalog.data?.length) {
+      setCatalog(persistentCatalog.data as Product[]);
+      localStorage.setItem("sakith-catalog", JSON.stringify(persistentCatalog.data));
+    } else if (persistentCatalog.data && !initializationRequested) {
+      setInitializationRequested(true);
+      initializeCatalog.mutate({ products: initialCatalog.map(({ id: _id, ...product }) => product) });
+    }
+  }, [persistentCatalog.data]);
+
+  useEffect(() => {
+    if (persistentSettings.data?.sourceOverride) setSource(persistentSettings.data.sourceOverride);
+  }, [persistentSettings.data]);
 
   const filteredProducts = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -56,7 +76,7 @@ export default function Home() {
     aiChat.mutate({ message: text, catalog: catalog.slice(0, 80).map(p => `${p.name} | ${p.category} | ${money(p.price)}`) });
   };
 
-  const saveProduct = () => { if (!editingProduct) return; const exists = catalog.some(product => product.id === editingProduct.id); persistCatalog(exists ? catalog.map(product => product.id === editingProduct.id ? editingProduct : product) : [...catalog, editingProduct]); setEditingProduct(null); };
+  const saveProduct = () => { if (!editingProduct) return; const exists = catalog.some(product => product.id === editingProduct.id); const localNext = exists ? catalog.map(product => product.id === editingProduct.id ? editingProduct : product) : [...catalog, editingProduct]; persistCatalog(localNext); saveCatalogProduct.mutate(exists ? editingProduct : { ...editingProduct, id: undefined }); setEditingProduct(null); };
   const uploadPreview = (file: File) => { if (!editingProduct) return; const reader = new FileReader(); reader.onload = async () => { const base64 = String(reader.result); try { const uploaded = await uploadImage.mutateAsync({ fileName: file.name, contentType: file.type, base64 }); setEditingProduct(current => current ? { ...current, image: uploaded.url } : current); } catch { /* Keep the existing storage-backed image when upload fails. */ } }; reader.readAsDataURL(file); };
 
   const customAccent = source.toLowerCase().includes("magenta") ? "#ff45c0" : "#54ddff";
@@ -92,7 +112,7 @@ export default function Home() {
 
     {editingProduct && <Dialog open={Boolean(editingProduct)} onOpenChange={open => !open && setEditingProduct(null)}><DialogContent className="editor-dialog"><DialogHeader><DialogTitle>EDIT MODULE // #{editingProduct.id}</DialogTitle></DialogHeader><div className="editor-grid"><label>Product name<Input value={editingProduct.name} onChange={event => setEditingProduct({ ...editingProduct, name: event.target.value })} /></label><label>Price (LKR)<Input type="number" value={editingProduct.price} onChange={event => setEditingProduct({ ...editingProduct, price: Number(event.target.value) })} /></label><label className="wide">Description<Textarea value={editingProduct.description} onChange={event => setEditingProduct({ ...editingProduct, description: event.target.value })} /></label><label className="wide">Product image<input type="file" accept="image/*" onChange={event => event.target.files?.[0] && uploadPreview(event.target.files[0])} /></label><img className="editor-preview" src={editingProduct.image} alt="Preview" /></div><Button className="save-button" onClick={saveProduct}><Save size={16} /> SAVE MODULE</Button></DialogContent></Dialog>}
 
-    {sourceOpen && <Dialog open={sourceOpen} onOpenChange={setSourceOpen}><DialogContent className="source-dialog"><DialogHeader><DialogTitle>SOURCE AREA // CUSTOM OVERRIDES</DialogTitle></DialogHeader><p className="source-note">Write and save your custom HTML/CSS notes here. The area is persisted in this browser for your next storefront iteration.</p><Textarea className="source-editor" value={source} onChange={event => setSource(event.target.value)} /><Button onClick={() => { localStorage.setItem("sakith-source", source); setSourceOpen(false); }}><Save size={16} /> SAVE SOURCE</Button></DialogContent></Dialog>}
+    {sourceOpen && <Dialog open={sourceOpen} onOpenChange={setSourceOpen}><DialogContent className="source-dialog"><DialogHeader><DialogTitle>SOURCE AREA // CUSTOM OVERRIDES</DialogTitle></DialogHeader><p className="source-note">Write and save your custom HTML/CSS notes here. The area is persisted in this browser for your next storefront iteration.</p><Textarea className="source-editor" value={source} onChange={event => setSource(event.target.value)} /><Button onClick={() => { localStorage.setItem("sakith-source", source); saveSourceOverride.mutate({ sourceOverride: source }); setSourceOpen(false); }}><Save size={16} /> SAVE SOURCE</Button></DialogContent></Dialog>}
   </div>;
 }
 

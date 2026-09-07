@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertProduct, InsertUser, products, storefrontSettings, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,41 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function listProducts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(products);
+}
+
+export async function upsertProduct(product: InsertProduct) {
+  const db = await getDb();
+  if (!db) return undefined;
+  if (product.id) {
+    await db.update(products).set({ name: product.name, category: product.category, price: product.price, image: product.image, tag: product.tag, description: product.description }).where(eq(products.id, product.id));
+    const result = await db.select().from(products).where(eq(products.id, product.id)).limit(1);
+    return result[0];
+  }
+  const result = await db.insert(products).values(product);
+  const id = Number(result[0].insertId);
+  const created = await db.select().from(products).where(eq(products.id, id)).limit(1);
+  return created[0];
+}
+
+export async function getStorefrontSettings() {
+  const db = await getDb();
+  if (!db) return { id: 0, sourceOverride: "" };
+  const result = await db.select().from(storefrontSettings).limit(1);
+  return result[0] ?? { id: 0, sourceOverride: "" };
+}
+
+export async function saveStorefrontSettings(sourceOverride: string) {
+  const db = await getDb();
+  if (!db) return { id: 0, sourceOverride };
+  const current = await db.select().from(storefrontSettings).limit(1);
+  if (current[0]) {
+    await db.update(storefrontSettings).set({ sourceOverride }).where(eq(storefrontSettings.id, current[0].id));
+    return { ...current[0], sourceOverride };
+  }
+  await db.insert(storefrontSettings).values({ sourceOverride });
+  return getStorefrontSettings();
+}

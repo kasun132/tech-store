@@ -1,0 +1,1 @@
+ALTER TABLE `storefront_settings` MODIFY COLUMN `sourceOverride` text NOT NULL;

@@ -25,4 +25,25 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const products = mysqlTable("products", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 180 }).notNull(),
+  category: varchar("category", { length: 40 }).notNull(),
+  price: int("price").notNull(),
+  image: text("image").notNull(),
+  tag: varchar("tag", { length: 40 }).notNull().default("READY"),
+  description: text("description").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const storefrontSettings = mysqlTable("storefront_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceOverride: text("sourceOverride").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+export type StorefrontSettings = typeof storefrontSettings.$inferSelect;
+export type InsertStorefrontSettings = typeof storefrontSettings.$inferInsert;
