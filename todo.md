@@ -30,3 +30,15 @@
 - [x] Preserve the Sakith Tech Store blue identity while improving readability, product browsing, and conversion-focused hierarchy.
 - [x] Verify the redesigned desktop and mobile storefront.
 - [x] Prepare clear GitHub export and hosting guidance, distinguishing full-stack hosting from GitHub Pages.
+
+- [x] Remix the layout with a practical retail header, search bar, cart/login utilities, and category navigation inspired by the attached reference.
+- [x] Add a promotional hero/banner area and breadcrumb-style shopping context.
+- [x] Add a left filter panel and sort controls while preserving the five Sakith categories.
+- [x] Improve product-grid density and retail shopping hierarchy without losing WhatsApp ordering, AI chat, or owner editing.
+- [x] Verify the combined layout on desktop and mobile and save a new checkpoint.
+
+## Retail remix follow-ups
+
+- [x] Give cart, login, signup, and language utility buttons clear placeholder feedback or real behavior.
+- [x] Make sidebar shop-by-need filters functional for fast charging, wireless audio, and everyday protection.
+- [x] Save a fresh checkpoint after the retail remix follow-ups are complete.
